@@ -1,197 +1,129 @@
 const taskInput = document.getElementById("taskInput");
 const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
-const taskCounter = document.getElementById("taskCounter");
-const clearCompleted = document.getElementById("clearCompleted");
+const filterBtns = document.querySelectorAll(".filter");
 
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 let currentFilter = "all";
 
-let tasks =
-    JSON.parse(localStorage.getItem("tasks")) || [];
-
 function saveTasks() {
-
-    localStorage.setItem(
-        "tasks",
-        JSON.stringify(tasks)
-    );
+    localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-function updateCounter() {
-
-    const activeTasks =
-        tasks.filter(task => !task.completed).length;
-
-    taskCounter.textContent =
-        `${activeTasks} task(s) left`;
-}
-
-function renderTasks(filter = currentFilter) {
-
-    currentFilter = filter;
+function renderTasks() {
 
     taskList.innerHTML = "";
 
     let filteredTasks = tasks.filter(task => {
 
-        if (filter === "active") {
+        if(currentFilter === "active")
             return !task.completed;
-        }
 
-        if (filter === "completed") {
+        if(currentFilter === "completed")
             return task.completed;
-        }
 
         return true;
     });
 
     filteredTasks.forEach(task => {
 
-        const originalIndex =
-            tasks.indexOf(task);
-
-        const li =
-            document.createElement("li");
+        const li = document.createElement("li");
+        li.className = `task ${task.completed ? "completed" : ""}`;
 
         li.innerHTML = `
+            <div>
+                <input type="checkbox"
+                    ${task.completed ? "checked" : ""}
+                    data-id="${task.id}" class="toggle">
 
-        <span class="${
-            task.completed
-                ? "completed"
-                : ""
-        }">
+                <span>${task.text}</span>
+            </div>
 
-            ${task.text}
+            <div class="actions">
+                <button class="edit"
+                        data-id="${task.id}">
+                    Edit
+                </button>
 
-        </span>
-
-        <div class="task-actions">
-
-            <button
-                class="complete-btn"
-                onclick="toggleTask(${originalIndex})"
-            >
-                ✓
-            </button>
-
-            <button
-                class="edit-btn"
-                onclick="editTask(${originalIndex})"
-            >
-                Edit
-            </button>
-
-            <button
-                class="delete-btn"
-                onclick="deleteTask(${originalIndex})"
-            >
-                Delete
-            </button>
-
-        </div>
-
+                <button class="delete"
+                        data-id="${task.id}">
+                    Delete
+                </button>
+            </div>
         `;
 
         taskList.appendChild(li);
     });
-
-    updateCounter();
 }
 
-addBtn.addEventListener("click", addTask);
+addBtn.addEventListener("click", () => {
 
-taskInput.addEventListener("keypress", function(e) {
+    const text = taskInput.value.trim();
 
-    if (e.key === "Enter") {
-        addTask();
-    }
-
-});
-
-function addTask() {
-
-    const text =
-        taskInput.value.trim();
-
-    if (text === "") return;
+    if(text === "") return;
 
     tasks.push({
-        text: text,
+        id: Date.now(),
+        text,
         completed: false
     });
 
     saveTasks();
-
     renderTasks();
 
     taskInput.value = "";
-}
+});
 
-function toggleTask(index) {
+taskList.addEventListener("click", (e) => {
 
-    tasks[index].completed =
-        !tasks[index].completed;
+    const id = Number(e.target.dataset.id);
 
-    saveTasks();
+    if(e.target.classList.contains("delete")) {
 
-    renderTasks();
-}
+        tasks = tasks.filter(task => task.id !== id);
 
-function editTask(index) {
+    } else if(e.target.classList.contains("edit")) {
 
-    let updatedTask =
-        prompt(
-            "Edit Task",
-            tasks[index].text
-        );
+        const newText = prompt("Edit Task:");
 
-    if (
-        updatedTask &&
-        updatedTask.trim() !== ""
-    ) {
-
-        tasks[index].text =
-            updatedTask.trim();
-
-        saveTasks();
-
-        renderTasks();
+        if(newText) {
+            const task = tasks.find(t => t.id === id);
+            task.text = newText;
+        }
     }
-}
-
-function deleteTask(index) {
-
-    tasks.splice(index, 1);
 
     saveTasks();
-
-    renderTasks();
-}
-
-clearCompleted.addEventListener("click", () => {
-
-    tasks =
-        tasks.filter(
-            task => !task.completed
-        );
-
-    saveTasks();
-
     renderTasks();
 });
 
-document
-.querySelectorAll("[data-filter]")
-.forEach(button => {
+taskList.addEventListener("change", (e) => {
 
-    button.addEventListener("click", () => {
+    if(e.target.classList.contains("toggle")) {
 
-        renderTasks(
-            button.dataset.filter
-        );
+        const id = Number(e.target.dataset.id);
 
+        const task = tasks.find(task => task.id === id);
+
+        task.completed = e.target.checked;
+
+        saveTasks();
+        renderTasks();
+    }
+});
+
+filterBtns.forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+        document.querySelector(".active")
+                .classList.remove("active");
+
+        btn.classList.add("active");
+
+        currentFilter = btn.dataset.filter;
+
+        renderTasks();
     });
-
 });
 
 renderTasks();
