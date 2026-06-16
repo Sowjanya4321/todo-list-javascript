@@ -3,27 +3,30 @@ const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
 
 let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let currentFilter = "all";
 
 function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-function renderTasks(filter = "all") {
+function renderTasks() {
 
     taskList.innerHTML = "";
 
-    let filteredTasks = tasks.filter(task => {
+    const filteredTasks = tasks.filter(task => {
 
-        if (filter === "active")
+        if (currentFilter === "active") {
             return !task.completed;
+        }
 
-        if (filter === "completed")
+        if (currentFilter === "completed") {
             return task.completed;
+        }
 
         return true;
     });
 
-    filteredTasks.forEach((task, index) => {
+    filteredTasks.forEach(task => {
 
         const li = document.createElement("li");
 
@@ -33,9 +36,9 @@ function renderTasks(filter = "all") {
             </span>
 
             <div>
-                <button onclick="toggleTask(${index})">✓</button>
-                <button onclick="editTask(${index})">Edit</button>
-                <button onclick="deleteTask(${index})">Delete</button>
+                <button onclick="toggleTask(${task.id})">✓</button>
+                <button onclick="editTask(${task.id})">Edit</button>
+                <button onclick="deleteTask(${task.id})">Delete</button>
             </div>
         `;
 
@@ -47,11 +50,12 @@ addBtn.addEventListener("click", () => {
 
     const text = taskInput.value.trim();
 
-    if(text === "") return;
+    if (text === "") return;
 
     tasks.push({
-        text,
-        completed:false
+        id: Date.now(),
+        text: text,
+        completed: false
     });
 
     saveTasks();
@@ -60,48 +64,58 @@ addBtn.addEventListener("click", () => {
     taskInput.value = "";
 });
 
-function toggleTask(index){
+function toggleTask(id) {
 
-    tasks[index].completed =
-        !tasks[index].completed;
+    const task = tasks.find(t => t.id === id);
 
-    saveTasks();
-    renderTasks();
-}
-
-function deleteTask(index){
-
-    tasks.splice(index,1);
+    if (task) {
+        task.completed = !task.completed;
+    }
 
     saveTasks();
     renderTasks();
 }
 
-function editTask(index){
+function deleteTask(id) {
 
-    let newTask = prompt(
-        "Edit Task",
-        tasks[index].text
-    );
+    tasks = tasks.filter(task => task.id !== id);
 
-    if(newTask){
+    saveTasks();
+    renderTasks();
+}
 
-        tasks[index].text = newTask;
+function editTask(id) {
+
+    const task = tasks.find(t => t.id === id);
+
+    if (!task) return;
+
+    const newTask = prompt("Edit Task", task.text);
+
+    if (newTask && newTask.trim() !== "") {
+
+        task.text = newTask.trim();
 
         saveTasks();
         renderTasks();
     }
 }
 
-document.querySelectorAll("[data-filter]")
-.forEach(btn => {
+document.querySelectorAll("[data-filter]").forEach(btn => {
 
     btn.addEventListener("click", () => {
 
-        renderTasks(
-            btn.dataset.filter
-        );
+        document.querySelectorAll("[data-filter]").forEach(b => {
+            b.classList.remove("active");
+        });
+
+        btn.classList.add("active");
+
+        currentFilter = btn.dataset.filter;
+
+        renderTasks();
     });
+
 });
 
 renderTasks();
