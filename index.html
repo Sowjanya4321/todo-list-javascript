@@ -1,32 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>My To-Do List</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+const taskInput = document.getElementById("taskInput");
+const addBtn = document.getElementById("addBtn");
+const taskList = document.getElementById("taskList");
+const filterBtns = document.querySelectorAll(".filter");
 
-<div class="container">
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let currentFilter = "all";
 
-    <h1>My To-Do List</h1>
+function saveTasks() {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
 
-    <div class="input-section">
-        <input type="text" id="taskInput"
-               placeholder="What needs to be done?">
-        <button id="addBtn">Add Task</button>
-    </div>
+function renderTasks() {
 
-    <div class="filters">
-        <button class="filter active" data-filter="all">All</button>
-        <button class="filter" data-filter="active">Active</button>
-        <button class="filter" data-filter="completed">Completed</button>
-    </div>
+    taskList.innerHTML = "";
 
-    <ul id="taskList"></ul>
+    const filteredTasks = tasks.filter(task => {
 
-</div>
+        if (currentFilter === "active") {
+            return !task.completed;
+        }
 
-<script src="script.js"></script>
-</body>
-</html>
+        if (currentFilter === "completed") {
+            return task.completed;
+        }
+
+        return true;
+    });
+
+    filteredTasks.forEach(task => {
+
+        const li = document.createElement("li");
+
+        li.className = `task ${task.completed ? "completed" : ""}`;
+
+        li.innerHTML = `
+            <div>
+                <input type="checkbox"
+                       class="toggle"
+                       data-id="${task.id}"
+                       ${task.completed ? "checked" : ""}>
+
+                <span>${task.text}</span>
+            </div>
+
+            <div class="actions">
+                <button class="edit" data-id="${task.id}">
+                    Edit
+                </button>
+
+                <button class="delete" data-id="${task.id}">
+                    Delete
+                </button>
+            </div>
+        `;
+
+        taskList.appendChild(li);
+    });
+}
+
+addBtn.addEventListener("click", () => {
+
+    const text = taskInput.value.trim();
+
+    if (!text) return;
+
+    tasks.push({
+        id: Date.now(),
+        text: text,
+        completed: false
+    });
+
+    saveTasks();
+    renderTasks();
+
+    taskInput.value = "";
+});
+
+taskList.addEventListener("click", (e) => {
+
+    const id = Number(e.target.dataset.id);
+
+    if (e.target.classList.contains("delete")) {
+
+        tasks = tasks.filter(task => task.id !== id);
+
+        saveTasks();
+        renderTasks();
+    }
+
+    if (e.target.classList.contains("edit")) {
+
+        const task = tasks.find(t => t.id === id);
+
+        const newText = prompt("Edit Task", task.text);
+
+        if (newText && newText.trim() !== "") {
+
+            task.text = newText.trim();
+
+            saveTasks();
+            renderTasks();
+        }
+    }
+});
+
+taskList.addEventListener("change", (e) => {
+
+    if (e.target.classList.contains("toggle")) {
+
+        const id = Number(e.target.dataset.id);
+
+        const task = tasks.find(t => t.id === id);
+
+        task.completed = e.target.checked;
+
+        saveTasks();
+        renderTasks();
+    }
+});
+
+filterBtns.forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+        filterBtns.forEach(b => b.classList.remove("active"));
+
+        btn.classList.add("active");
+
+        currentFilter = btn.dataset.filter;
+
+        renderTasks();
+    });
+
+});
+
+renderTasks();
