@@ -1,107 +1,197 @@
 const taskInput = document.getElementById("taskInput");
 const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
+const taskCounter = document.getElementById("taskCounter");
+const clearCompleted = document.getElementById("clearCompleted");
 
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+let currentFilter = "all";
+
+let tasks =
+    JSON.parse(localStorage.getItem("tasks")) || [];
 
 function saveTasks() {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
+
+    localStorage.setItem(
+        "tasks",
+        JSON.stringify(tasks)
+    );
 }
 
-function renderTasks(filter = "all") {
+function updateCounter() {
+
+    const activeTasks =
+        tasks.filter(task => !task.completed).length;
+
+    taskCounter.textContent =
+        `${activeTasks} task(s) left`;
+}
+
+function renderTasks(filter = currentFilter) {
+
+    currentFilter = filter;
 
     taskList.innerHTML = "";
 
     let filteredTasks = tasks.filter(task => {
 
-        if (filter === "active")
+        if (filter === "active") {
             return !task.completed;
+        }
 
-        if (filter === "completed")
+        if (filter === "completed") {
             return task.completed;
+        }
 
         return true;
     });
 
-    filteredTasks.forEach((task, index) => {
+    filteredTasks.forEach(task => {
 
-        const li = document.createElement("li");
+        const originalIndex =
+            tasks.indexOf(task);
+
+        const li =
+            document.createElement("li");
 
         li.innerHTML = `
-            <span class="${task.completed ? 'completed' : ''}">
-                ${task.text}
-            </span>
 
-            <div>
-                <button onclick="toggleTask(${index})">✓</button>
-                <button onclick="editTask(${index})">Edit</button>
-                <button onclick="deleteTask(${index})">Delete</button>
-            </div>
+        <span class="${
+            task.completed
+                ? "completed"
+                : ""
+        }">
+
+            ${task.text}
+
+        </span>
+
+        <div class="task-actions">
+
+            <button
+                class="complete-btn"
+                onclick="toggleTask(${originalIndex})"
+            >
+                ✓
+            </button>
+
+            <button
+                class="edit-btn"
+                onclick="editTask(${originalIndex})"
+            >
+                Edit
+            </button>
+
+            <button
+                class="delete-btn"
+                onclick="deleteTask(${originalIndex})"
+            >
+                Delete
+            </button>
+
+        </div>
+
         `;
 
         taskList.appendChild(li);
     });
+
+    updateCounter();
 }
 
-addBtn.addEventListener("click", () => {
+addBtn.addEventListener("click", addTask);
 
-    const text = taskInput.value.trim();
+taskInput.addEventListener("keypress", function(e) {
 
-    if(text === "") return;
+    if (e.key === "Enter") {
+        addTask();
+    }
+
+});
+
+function addTask() {
+
+    const text =
+        taskInput.value.trim();
+
+    if (text === "") return;
 
     tasks.push({
-        text,
-        completed:false
+        text: text,
+        completed: false
     });
 
     saveTasks();
+
     renderTasks();
 
     taskInput.value = "";
-});
+}
 
-function toggleTask(index){
+function toggleTask(index) {
 
     tasks[index].completed =
         !tasks[index].completed;
 
     saveTasks();
+
     renderTasks();
 }
 
-function deleteTask(index){
+function editTask(index) {
 
-    tasks.splice(index,1);
+    let updatedTask =
+        prompt(
+            "Edit Task",
+            tasks[index].text
+        );
 
-    saveTasks();
-    renderTasks();
-}
+    if (
+        updatedTask &&
+        updatedTask.trim() !== ""
+    ) {
 
-function editTask(index){
-
-    let newTask = prompt(
-        "Edit Task",
-        tasks[index].text
-    );
-
-    if(newTask){
-
-        tasks[index].text = newTask;
+        tasks[index].text =
+            updatedTask.trim();
 
         saveTasks();
+
         renderTasks();
     }
 }
 
-document.querySelectorAll("[data-filter]")
-.forEach(btn => {
+function deleteTask(index) {
 
-    btn.addEventListener("click", () => {
+    tasks.splice(index, 1);
+
+    saveTasks();
+
+    renderTasks();
+}
+
+clearCompleted.addEventListener("click", () => {
+
+    tasks =
+        tasks.filter(
+            task => !task.completed
+        );
+
+    saveTasks();
+
+    renderTasks();
+});
+
+document
+.querySelectorAll("[data-filter]")
+.forEach(button => {
+
+    button.addEventListener("click", () => {
 
         renderTasks(
-            btn.dataset.filter
+            button.dataset.filter
         );
+
     });
+
 });
 
 renderTasks();
