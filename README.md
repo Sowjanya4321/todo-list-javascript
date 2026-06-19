@@ -19,6 +19,3 @@
 - JavaScript
 - LocalStorage
 
-## Live Demo
-
-GitHub Pages Link Here
